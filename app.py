@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
-from tempfile import TemporaryDirectory
 
 import pandas as pd
+
+os.environ.setdefault("PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION", "python")
+
 import streamlit as st
 
 from src.pipeline import CandidateDiscoveryPipeline
@@ -83,22 +86,21 @@ def main() -> None:
     candidates = None
 
     if jd_upload and candidates_upload:
-        with TemporaryDirectory() as temp_dir:
-            temp_root = Path(temp_dir)
-            jd_path = _write_uploaded_file(jd_upload, temp_root / jd_upload.name)
-            candidates_path = _write_uploaded_file(candidates_upload, temp_root / candidates_upload.name)
+        upload_dir = pipeline.config.output_dir / "uploads"
+        jd_path = _write_uploaded_file(jd_upload, upload_dir / jd_upload.name)
+        candidates_path = _write_uploaded_file(candidates_upload, upload_dir / candidates_upload.name)
 
-            if run_button or page in {"Candidate Ranking", "Top Candidates", "Candidate Details", "Analytics Dashboard", "Download Submission"}:
-                jd_profile, candidates, results = _load_from_sources(pipeline, jd_path, candidates_path)
-                reports = [
-                    ("Job Description", inspector.inspect(pipeline.loader.load(jd_path))),
-                    ("Candidates", inspector.inspect(pipeline.loader.load(candidates_path))),
-                ]
-                st.session_state["jd_profile"] = jd_profile
-                st.session_state["candidates"] = candidates
-                st.session_state["results"] = results
-                submission_path = pipeline.generate_submission(results)
-                st.session_state["submission_path"] = submission_path
+        if run_button or page in {"Candidate Ranking", "Top Candidates", "Candidate Details", "Analytics Dashboard", "Download Submission"}:
+            jd_profile, candidates, results = _load_from_sources(pipeline, jd_path, candidates_path)
+            reports = [
+                ("Job Description", inspector.inspect(pipeline.loader.load(jd_path))),
+                ("Candidates", inspector.inspect(pipeline.loader.load(candidates_path))),
+            ]
+            st.session_state["jd_profile"] = jd_profile
+            st.session_state["candidates"] = candidates
+            st.session_state["results"] = results
+            submission_path = pipeline.generate_submission(results)
+            st.session_state["submission_path"] = submission_path
     elif jd_default.exists() and candidates_default.exists():
         if run_button or page in {"Candidate Ranking", "Top Candidates", "Candidate Details", "Analytics Dashboard", "Download Submission"}:
             jd_profile, candidates, results = _load_from_sources(pipeline, jd_default, candidates_default)
