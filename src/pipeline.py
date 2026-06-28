@@ -56,7 +56,13 @@ class CandidateDiscoveryPipeline:
 
         for candidate in candidates:
             features = self.feature_extractor.extract(candidate, jd_profile)
-            candidate_embedding = self.embedding_service.embed(candidate.raw_text or candidate.headline or candidate.name)
+            candidate_embedding = self.embedding_service.embed(
+                " ".join(
+                    part
+                    for part in [candidate.raw_text, candidate.headline, candidate.name, " ".join(candidate.skills)]
+                    if part
+                )
+            )
             features.semantic_similarity = self.ranking_engine.semantic_similarity(candidate_embedding, job_embedding)
             candidate_features[candidate.candidate_id] = features
 

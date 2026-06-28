@@ -56,8 +56,8 @@ class Preprocessor:
             location=self._get_str(record, self.field_map.location, ""),
             headline=self._get_str(record, self.field_map.headline, ""),
             years_experience=years_experience,
-            skills=self._normalize_list_field(record.get(self.field_map.skills, [])),
-            soft_skills=self._normalize_list_field(record.get(self.field_map.soft_skills, [])),
+            skills=self._normalize_list_field(record.get(self.field_map.skills, []), normalize_as_skill=True),
+            soft_skills=self._normalize_list_field(record.get(self.field_map.soft_skills, []), normalize_as_skill=True),
             education=self._normalize_list_field(record.get(self.field_map.education, [])),
             certifications=self._normalize_list_field(record.get(self.field_map.certifications, [])),
             projects=self._normalize_list_field(record.get(self.field_map.projects, [])),
@@ -98,14 +98,17 @@ class Preprocessor:
             self.field_map.years_experience,
         }
 
-    def _normalize_list_field(self, value: Any) -> list[str]:
+    def _normalize_list_field(self, value: Any, normalize_as_skill: bool = False) -> list[str]:
         """Convert any semi-structured field into a normalized string list."""
 
         if value is None:
             return []
         if isinstance(value, str):
+            values = split_skill_text(value) if any(sep in value for sep in [";", ",", "/", "|"]) else [value.strip()]
             return unique_preserve_order(
-                normalize_skill_name(part) if part else part for part in split_skill_text(value)
+                normalize_skill_name(part) if normalize_as_skill else normalize_whitespace(part)
+                for part in values
+                if part
             )
         if isinstance(value, list):
             items: list[str] = []
@@ -114,8 +117,12 @@ class Preprocessor:
                     items.extend(split_skill_text(entry) if ";" in entry or "," in entry else [entry.strip()])
                 else:
                     items.append(str(entry).strip())
-            return unique_preserve_order(normalize_skill_name(item) for item in items if item)
-        return [normalize_skill_name(str(value))]
+            return unique_preserve_order(
+                normalize_skill_name(item) if normalize_as_skill else normalize_whitespace(item)
+                for item in items
+                if item
+            )
+        return [normalize_skill_name(str(value)) if normalize_as_skill else normalize_whitespace(str(value))]
 
     def _get_str(self, record: dict[str, Any], key: str, default: str) -> str:
         value = record.get(key, default)
