@@ -1,0 +1,17 @@
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+.streamlit/
+build/
+dist/
+*.egg-info/
+output/
+data/raw/
+data/processed/
+models/
+*.xlsx
+*.log
